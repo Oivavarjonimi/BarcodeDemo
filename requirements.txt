@@ -1,0 +1,44 @@
+# ============================================================
+# BarcodeDemo – system & library requirements
+# Target: Linux (Ubuntu 22.04+), WSL2 supported
+# ============================================================
+
+# ---- Build tools ----
+cmake>=3.27
+gcc>=11
+g++>=11
+make
+
+# ---- Qt 6 ----
+qt6-base-dev
+qt6-base-dev-tools
+qt6-multimedia-dev
+qt6-network-dev
+qt6-tools-dev
+
+# ---- Barcode decoding ----
+# ZXing-cpp (built as submodule)
+# https://github.com/zxing-cpp/zxing-cpp
+
+# ZBar (optional backend)
+libzbar-dev
+
+# ---- Graphics / input (Qt dependencies) ----
+libxkbcommon-dev
+libxkbcommon-x11-dev
+libgl1-mesa-dev
+
+# ---- Camera / streaming ----
+v4l-utils
+ffmpeg
+
+# ---- Optional: Phone camera via DroidCam ----
+# (Not a system package – installed separately)
+# https://www.dev47apps.com/droidcam/
+
+# ---- Optional debugging ----
+gdb
+valgrind
+
+# ---- Runtime ----
+mesa-utils

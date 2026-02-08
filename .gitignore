@@ -1,0 +1,51 @@
+# -----------------------------
+# Build outputs (CMake)
+# -----------------------------
+build/
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+install_manifest.txt
+compile_commands.json
+
+# Ninja (if used)
+build.ninja
+.ninja_deps
+.ninja_log
+rules.ninja
+
+# -----------------------------
+# Qt (moc/uic/rcc/autogen)
+# -----------------------------
+*_autogen/
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+
+# -----------------------------
+# IDEs / editors
+# -----------------------------
+.vscode/
+.idea/
+*.user
+*.user.*
+*.creator*
+*.qmlproject.user*
+*.pro.user*
+*.autosave
+
+# -----------------------------
+# OS / misc
+# -----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+../barcodedemo_tmp/
