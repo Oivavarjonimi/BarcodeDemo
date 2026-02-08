@@ -1,21 +1,12 @@
-Tässä on **valmis, siisti ja ammattimainen `README.md`** suoraan projektiisi.
-Se on kirjoitettu niin, että **arvioija / kollega / opettaja** ymmärtää heti mitä demo tekee ja miten se ajetaan.
-
-Voit kopioida tämän sellaisenaan tiedostoon `README.md`.
-
----
-
-````md
 # BarcodeDemo
 
-**BarcodeDemo** is a Qt 6–based C++ demo application for reading **QR codes and barcodes**
-(EAN / Code128) from images, PC webcams, and mobile phone cameras.
+**BarcodeDemo** is a Qt 6â€“based C++ demo application for reading **QR codes and barcodes** (EAN / Code128) from images, PC webcams, and mobile phone cameras.
 
 The application supports **runtime-selectable decoding backends**:
 - **ZXing-cpp**
 - **ZBar**
 
-It is designed as a **clear, extensible demo** showing modern Qt UI, camera handling,
+It is designed as a **clear, extensible demo** showing modern Qt UI, camera handling, 
 and pluggable decoding logic.
 
 ---
@@ -43,24 +34,13 @@ and pluggable decoding logic.
 
 ---
 
-## Screenshots
-
-*(Optional – add screenshots here if desired)*
-
----
-
 ## Requirements
-
-See `requirements.txt` for a full list.
 
 ### Main dependencies
 - Linux (Ubuntu 22.04+ or WSL2)
 - C++20 compiler (GCC 11+)
-- CMake ? 3.27
-- Qt 6:
-  - Qt6 Widgets
-  - Qt6 Multimedia
-  - Qt6 Network
+- CMake â‰¥ 3.27
+- Qt 6 (Widgets, Multimedia, Network)
 - ZXing-cpp (included as submodule)
 - ZBar (optional backend)
 
@@ -68,31 +48,40 @@ See `requirements.txt` for a full list.
 
 ## Installation (Ubuntu / WSL2)
 
+### 1. System Dependencies
 ```bash
 sudo apt update && sudo apt install -y \
   cmake gcc g++ make \
   qt6-base-dev qt6-base-dev-tools \
   qt6-multimedia-dev qt6-network-dev qt6-tools-dev \
-  libzbar-dev \
-  libxkbcommon-dev libxkbcommon-x11-dev \
-  libgl1-mesa-dev \
+  libzbar-dev libxkbcommon-dev libgl1-mesa-dev \
   v4l-utils ffmpeg
-````
+```
+
+### 2. DroidCam Linux Client (Optional)
+To use DroidCam as a virtual webcam device:
+```bash
+cd /tmp
+wget -O droidcam_latest.zip [https://files.dev47apps.net/linux/droidcam_2.1.3.zip](https://files.dev47apps.net/linux/droidcam_2.1.3.zip)
+unzip droidcam_latest.zip -d droidcam
+cd droidcam && sudo ./install-client
+```
 
 ---
 
 ## Build
 
 ```bash
-git clone <your-repo-url>
+# Clone with submodules
+git clone --recurse-submodules <repo-url>
 cd BarcodeDemo
 
+# Configure and build
 cmake -S . -B build
-cmake --build build -j
+cmake --build build -j$(nproc)
 ```
 
-Run:
-
+Run the application:
 ```bash
 ./build/BarcodeDemo
 ```
@@ -101,36 +90,18 @@ Run:
 
 ## Using a Phone Camera (DroidCam)
 
-The application supports **mobile phone cameras** using DroidCam in MJPEG mode.
+The application fetches the **MJPEG stream** directly from the DroidCam app.
 
-### Setup
-
-1. Install DroidCam on your phone
-2. Start DroidCam in **PC Webcam / WiFi (MJPEG)** mode
-3. Note the IP address and port (e.g. `192.168.100.171:4747`)
+### Setup Android
+1. Install **DroidCam** from the Play Store.
+2. Connect phone and PC to the **same Wi-Fi**.
+3. Open DroidCam on the phone to see the **IP address** and **Port** (e.g., `192.168.1.50:4747`).
 
 ### Configure in BarcodeDemo
-
-* Open **Settings ? Phone camera…**
-* Enter IP address and port
-* Press **Snap** to start live preview
-* Press **Snap** again to freeze the frame and decode
-
----
-
-## Decoder Backend Selection
-
-You can switch decoder engines at runtime:
-
-```
-Settings ? Decoder backend ? ZXing / ZBar
-```
-
-This is useful for:
-
-* Comparing decoding accuracy
-* Performance testing
-* Demonstrating modular architecture
+1. Open **Settings â†’ Phone cameraâ€¦**
+2. Enter the **IP address** and **Port**.
+3. Press **Snap** to start the stream.
+4. Press **Snap** again to capture and decode.
 
 ---
 
@@ -138,52 +109,40 @@ This is useful for:
 
 ```
 BarcodeDemo/
-	src/
-        MainWindow.*        # UI and application logic
+    src/
+        MainWindow.* # UI and application logic
         CameraController.* # PC webcam handling
-        IDecoder.h         # Decoder interface
-        ZXingDecoder.*     # ZXing backend
-        ZBarDecoder.*      # ZBar backend
-        BarcodeDecoder.*  # Shared decode helpers
+        IDecoder.h        # Decoder interface
+        ZXingDecoder.* # ZXing backend
+        ZBarDecoder.* # ZBar backend
     extern/
-        zxing-cpp/         # ZXing-cpp submodule
-    build/                 # Build output
-    requirements.txt
+        zxing-cpp/        # ZXing-cpp submodule
     CMakeLists.txt
     README.md
 ```
 
 ---
 
-## Design Notes
-
-* UI logic is separated from decoding logic via `IDecoder`
-* Decoder backend is selected at runtime (Strategy pattern)
-* Phone camera is implemented as MJPEG-over-HTTP stream
-* Application settings are stored using `QSettings`
-* Designed for easy extension:
-
-  * New decoders
-  * New image sources
-  * Auto-decode modes
-
----
-
-## Possible Extensions
-
-* Automatic live decoding with stability detection
-* Region-of-interest (ROI) selection
-* Decode history filtering and export
-* Plugin-based decoder loading
-* Cross-platform packaging (AppImage / Windows)
-
----
-
 ## License
 
-This project is intended as a **demo / educational example**.
+**MIT License**
 
-ZXing-cpp and ZBar are licensed under their respective licenses.
+Copyright (c) 2026 Kimmo Lepoaho 
 
-```
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
