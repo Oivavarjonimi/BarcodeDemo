@@ -34,6 +34,13 @@
 #include "ZBarDecoder.h"
 #include "CameraController.h"
 
+#include <QCryptographicHash>
+#include <QBuffer>
+#include <QDebug>
+
+static QString imageFingerprint(const QImage& img);
+
+
 MainWindow::~MainWindow() = default;
 
 static QString timeStamp()
@@ -249,46 +256,77 @@ void MainWindow::onCapture()
 
 void MainWindow::onDecode()
 {
-    const QImage img = !m_snapshotImage.isNull() ? m_snapshotImage : m_currentImage;
+    const bool useSnapshot = !m_snapshotImage.isNull();
+    const QImage imgToDecode = useSnapshot ? m_snapshotImage : m_currentImage;
 
-    if (img.isNull()) {
-        statusBar()->showMessage("No image to decode. Use 'Ota kuva' or File -> Open image...", 4000);
+    qDebug() << "Decode called:"
+        << "useSnapshot=" << useSnapshot
+        << "liveFromPhone=" << m_liveFromPhone
+        << "current=" << m_currentImage.size() << imageFingerprint(m_currentImage)
+        << "snapshot=" << m_snapshotImage.size() << imageFingerprint(m_snapshotImage)
+        << "chosen=" << imgToDecode.size() << imageFingerprint(imgToDecode);
+
+    if (imgToDecode.isNull()) {
+        statusBar()->showMessage("Decode: no image to decode.", 4000);
         return;
     }
 
-    decodeAndAppend(img, "manual decode");
+    m_results->clear();
+
+    decodeAndAppend(imgToDecode, useSnapshot ? "Phone snapshot" : "Current image");
+
+    if (m_results->count() == 0) {
+        statusBar()->showMessage(
+            QString("No barcode found (manual decode) using %1").arg(m_decoder ? m_decoder->name() : "Decoder"),
+            4000
+        );
+    }
+    else {
+        statusBar()->showMessage(
+            QString("Decode OK (%1 result(s)) using %2").arg(m_results->count()).arg(m_decoder ? m_decoder->name() : "Decoder"),
+            4000
+        );
+    }
 }
+
+
 
 void MainWindow::decodeAndAppend(const QImage& img, const QString& sourceLabel)
 {
     if (img.isNull() || !m_decoder)
         return;
 
+    const QString fp = imageFingerprint(img);
+
     const auto res = m_decoder->decode(img);
     if (!res.ok) {
-        statusBar()->showMessage("No barcode found (" + sourceLabel + ").", 3000);
+        statusBar()->showMessage("No barcode found (" + sourceLabel + ", fp=" + fp + ").", 3000);
         return;
     }
 
-    // Debounce: same text repeated within 1.5s
+    // Debounce only if BOTH decoded text and image fingerprint match within 1.5s
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (res.text == m_lastDecodedText && (now - m_lastDecodedMs) < 1500) {
+    if (res.text == m_lastDecodedText && fp == m_lastDecodedImageFp && (now - m_lastDecodedMs) < 1500) {
         statusBar()->showMessage("Same code ignored (debounce).", 1500);
         return;
     }
+
     m_lastDecodedText = res.text;
     m_lastDecodedFormat = res.format;
+    m_lastDecodedImageFp = fp;
     m_lastDecodedMs = now;
 
-    const QString line = QString("[%1] (%2) %3")
+    const QString line = QString("[%1] (%2) %3  {src=%4 fp=%5}")
         .arg(timeStamp())
         .arg(res.format)
-        .arg(res.text);
+        .arg(res.text)
+        .arg(sourceLabel)
+        .arg(fp);
 
     m_results->addItem(line);
     m_results->setCurrentRow(m_results->count() - 1);
 
-    statusBar()->showMessage(QString("Decoded: %1").arg(res.format), 3000);
+    statusBar()->showMessage(QString("Decoded: %1 (%2)").arg(res.format, sourceLabel), 3000);
 }
 
 QString MainWindow::selectedOrLastDecodedText() const
@@ -464,21 +502,38 @@ void MainWindow::setDecoderBackend(DecoderBackend b, bool persist)
     if (m_actZBar)  m_actZBar->setChecked(b == DecoderBackend::ZBar);
 }
 
+
 void MainWindow::onPhoneShot()
 {
+    // First press: start live stream
     if (!m_liveFromPhone) {
-        // 1st press: start live preview
+        m_liveFromPhone = true;              // <-- TÄRKEÄ: tila päälle heti
+        m_results->clear();
+        m_snapshotImage = QImage();          // clear previous snapshot
+        m_btnPhoneShot->setText("Freeze");
         startPhoneLive();
-        m_btnPhoneShot->setText("Snap (Freeze)");
-        statusBar()->showMessage("Phone live preview ON (press again to freeze)", 3000);
+        statusBar()->showMessage("Phone live preview started. Press Freeze to capture.", 4000);
+        return;
     }
-    else {
-        // 2nd press: freeze current frame & stop
-        stopPhoneLive(/*keepLastFrame=*/true);
-        m_btnPhoneShot->setText("Snap (Live)");
-        statusBar()->showMessage("Phone live preview OFF (frame frozen)", 3000);
+
+    // Second press: freeze current frame and stop stream
+    if (m_currentImage.isNull()) {
+        statusBar()->showMessage("Freeze: no phone frame received yet.", 4000);
+        return;
     }
+
+    m_snapshotImage = m_currentImage.copy();
+    m_btnPhoneShot->setText("Snap");
+    stopPhoneLive(/*keepLastFrame=*/true);
+    m_liveFromPhone = false;                 // <-- TÄRKEÄ: tila pois
+
+    // Show the frozen frame in UI (optional but recommended)
+    setPreviewImage(m_snapshotImage);
+
+    statusBar()->showMessage("Phone frame captured. Press Decode to decode.", 4000);
 }
+
+
 
 void MainWindow::startPhoneLive()
 {
@@ -556,15 +611,21 @@ void MainWindow::onPhoneStreamReadyRead()
 
         QImage img;
         if (img.loadFromData(jpegData, "JPG") || img.loadFromData(jpegData, "JPEG")) {
+
+            // --- 3) EHDOTUS: Päivitä DECODEN lähdekuva aina uusimmalla framella ---
             m_currentImage = img;
 
-            m_preview->setPixmap(QPixmap::fromImage(m_currentImage)
-                .scaled(m_preview->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            // Käytä keskitettyä preview-funktiota (skaalaus ym. yhdessä paikassa)
+            setPreviewImage(m_currentImage);
+
+            // (valinnainen) kevyt debug: näkee että framet vaihtuvat
+            qDebug() << "Phone frame:" << m_currentImage.size() << "format" << m_currentImage.format();
         }
 
         // jatka loopissa, jos bufferissa oli useampi frame
     }
 }
+
 
 void MainWindow::loadPhoneSettings()
 {
@@ -618,3 +679,16 @@ void MainWindow::editPhoneSettings()
     statusBar()->showMessage(QString("Phone camera set to %1:%2").arg(ip).arg(port), 4000);
 }
 
+static QString imageFingerprint(const QImage& img)
+{
+    if (img.isNull())
+        return "null";
+
+    QByteArray bytes;
+    QBuffer buf(&bytes);
+    buf.open(QIODevice::WriteOnly);
+    img.save(&buf, "PNG");
+
+    const QByteArray hash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha1);
+    return QString(hash.toHex().left(12));
+}

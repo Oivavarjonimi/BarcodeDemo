@@ -98,6 +98,7 @@ private:
     QNetworkReply* m_liveReply = nullptr;
     QByteArray m_mjpegBuffer;
     QString m_droidcamUrl; // loaded from settings
+    QString m_lastDecodedImageFp;
 
     // --- last decode bookkeeping ---
     QString m_lastDecodedText;
